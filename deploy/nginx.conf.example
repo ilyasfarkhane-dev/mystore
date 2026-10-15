@@ -1,0 +1,42 @@
+# /etc/nginx/sites-available/shop.example.com (example, not installed)
+limit_req_zone $binary_remote_addr zone=maison_api:10m rate=10r/s;
+
+server {
+    listen 443 ssl http2;
+    server_name shop.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/shop.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/shop.example.com/privkey.pem;
+
+    root /opt/maison/app/dist;
+    index index.html;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    # Only the read-only catalog routes are forwarded; everything else under /api is 404.
+    location ~ ^/api/(health|products|products/[0-9]+|products/[0-9]+/variants|categories|images/(product|variant)/[0-9]+/[0-9]+)$ {
+        limit_except GET { deny all; }
+        limit_req zone=maison_api burst=40 nodelay;
+        proxy_pass http://127.0.0.1:8787;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 30s;
+    }
+    location /api/ { return 404; }
+
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+
+server {
+    listen 80;
+    server_name shop.example.com;
+    return 301 https://$host$request_uri;
+}

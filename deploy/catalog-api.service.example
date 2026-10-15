@@ -1,0 +1,30 @@
+# /etc/systemd/system/maison-catalog-api.service (example, not installed)
+[Unit]
+Description=MAISON storefront catalog intermediary (read-only Odoo JSON-RPC)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=maison
+Group=maison
+WorkingDirectory=/opt/maison/app
+EnvironmentFile=/etc/maison/catalog-api.env
+Environment=API_ENV_FILE=/nonexistent
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+CapabilityBoundingSet=
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
